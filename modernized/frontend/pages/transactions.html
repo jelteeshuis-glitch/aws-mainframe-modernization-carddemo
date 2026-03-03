@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardDemo - Transactions</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!--
+    MODERNIZED: Replaces transaction BMS screens and COBOL programs:
+    - COTRN00.bms / COTRN00C.cbl (Transaction List - CT00)
+    - COTRN01.bms / COTRN01C.cbl (Transaction View - CT01)
+    - COTRN02.bms / COTRN02C.cbl (Transaction Add - CT02)
+    - CBTRN02C.cbl (Batch Transaction Posting via POSTTRAN JCL)
+
+    Legacy limitations:
+    - List showed ~10 transactions on 24x80 screen
+    - PF7/PF8 to page (no search/filter)
+    - Adding transactions required entering each field on BMS screen
+    - Batch posting ran nightly via JCL job
+
+    Modern improvements:
+    - Paginated list with filtering
+    - Real-time transaction posting (not batch)
+    - Fraud detection integrated
+    - Search and sort capabilities
+    -->
+
+    <div class="app-layout">
+        <nav class="sidebar">
+            <div class="sidebar-logo">
+                <h2>CardDemo</h2>
+                <span>Modernized Platform</span>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">Navigation</div>
+                <a href="/dashboard" class="nav-item"><span class="icon">&#9632;</span> Dashboard</a>
+                <a href="/accounts-page" class="nav-item"><span class="icon">&#9733;</span> Accounts</a>
+                <a href="/transactions-page" class="nav-item active"><span class="icon">&#8644;</span> Transactions</a>
+                <a href="/fraud-page" class="nav-item"><span class="icon">&#9888;</span> Fraud Detection <span class="badge">NEW</span></a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">System</div>
+                <a href="/api/docs" class="nav-item" target="_blank"><span class="icon">&#128196;</span> API Docs</a>
+            </div>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-details">
+                        <div class="name" id="userName">Admin User</div>
+                        <div class="role" id="userRole">Administrator</div>
+                    </div>
+                </div>
+                <a href="/" class="nav-item" style="margin-top: 12px; color: var(--danger);" onclick="localStorage.clear()">
+                    <span class="icon">&#10140;</span> Sign Out
+                </a>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1>Transactions</h1>
+                    <div class="legacy-ref">Replaces COTRN00C/01C/02C.cbl + CBTRN02C.cbl (batch posting)</div>
+                </div>
+                <button class="btn btn-primary" style="width: auto;" onclick="toggleNewTransaction()">
+                    + New Transaction
+                </button>
+            </div>
+
+            <!-- New Transaction Form -->
+            <div id="newTransactionForm" class="card" style="display: none; border-color: var(--primary);">
+                <div class="card-header">
+                    <h3>Post New Transaction</h3>
+                    <span class="card-header legacy-tag">was: CT02 CICS + POSTTRAN.JCL batch</span>
+                </div>
+                <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">
+                    This replaces both the CICS online add (COTRN02C.cbl) and the batch posting
+                    job (CBTRN02C.cbl via POSTTRAN.JCL). Transactions are now validated and posted
+                    in real-time with integrated fraud detection.
+                </p>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Card Number</label>
+                        <select id="txnCardNumber" class="form-input">
+                            <option value="4111111111111111">4111 1111 1111 1111 (Jan de Vries)</option>
+                            <option value="4222222222222222">4222 2222 2222 2222 (Jan de Vries)</option>
+                            <option value="5333333333333333">5333 3333 3333 3333 (Emma Bakker)</option>
+                            <option value="5444444444444444">5444 4444 4444 4444 (Pieter Jansen)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Amount (&euro;)</label>
+                        <input type="number" id="txnAmount" class="form-input" value="125.50" step="0.01" min="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Merchant Name</label>
+                        <input type="text" id="txnMerchant" class="form-input" value="Albert Heijn">
+                    </div>
+                    <div class="form-group">
+                        <label>Merchant City</label>
+                        <input type="text" id="txnCity" class="form-input" value="Amsterdam">
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" id="txnDescription" class="form-input" value="Groceries">
+                    </div>
+                    <div class="form-group">
+                        <label>Source</label>
+                        <select id="txnSource" class="form-input">
+                            <option value="ONLINE">Online</option>
+                            <option value="POS TERM" selected>POS Terminal</option>
+                            <option value="ATM">ATM</option>
+                            <option value="MOBILE">Mobile App</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px; margin-top: 8px;">
+                    <button class="btn btn-primary" style="width: auto;" onclick="submitTransaction()">
+                        Post Transaction (with Fraud Check)
+                    </button>
+                    <button class="btn btn-secondary" style="width: auto;" onclick="toggleNewTransaction()">
+                        Cancel
+                    </button>
+                </div>
+
+                <div id="txnResult" style="display: none; margin-top: 16px;"></div>
+            </div>
+
+            <!-- Transaction List -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Transaction History</h3>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <select id="filterAccount" class="form-input" style="width: 200px; padding: 8px 12px;" onchange="loadTransactions()">
+                            <option value="">All Accounts</option>
+                            <option value="1">Account #1</option>
+                            <option value="2">Account #2</option>
+                            <option value="3">Account #3</option>
+                        </select>
+                        <span class="card-header legacy-tag">was: CT00 CICS</span>
+                    </div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Merchant</th>
+                            <th>Card</th>
+                            <th>Amount</th>
+                            <th>Fraud</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionsList">
+                        <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        function loadUserInfo() {
+            const user = JSON.parse(localStorage.getItem('carddemo_user') || '{}');
+            if (user.first_name) {
+                document.getElementById('userName').textContent = `${user.first_name} ${user.last_name}`;
+                document.getElementById('userRole').textContent = user.role === 'admin' ? 'Administrator' : 'User';
+                document.getElementById('userAvatar').textContent = user.first_name[0];
+            }
+        }
+
+        function toggleNewTransaction() {
+            const form = document.getElementById('newTransactionForm');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            document.getElementById('txnResult').style.display = 'none';
+        }
+
+        async function loadTransactions() {
+            const accountId = document.getElementById('filterAccount').value;
+            let url = `${API_BASE}/api/v1/transactions?page_size=50`;
+            if (accountId) url += `&account_id=${accountId}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                const tbody = document.getElementById('transactionsList');
+                if (data.transactions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No transactions found</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.transactions.map(t => {
+                    const amount = parseFloat(t.amount);
+                    const amountClass = amount < 0 ? 'positive' : 'negative';
+                    const amountStr = amount < 0
+                        ? `+&euro;${Math.abs(amount).toFixed(2)}`
+                        : `-&euro;${amount.toFixed(2)}`;
+                    const date = new Date(t.originated_at).toLocaleDateString('nl-NL');
+
+                    let fraudBadge = '';
+                    const score = t.fraud_score || 0;
+                    if (t.fraud_risk_level === 'low') {
+                        fraudBadge = `<span class="badge badge-success">${(score * 100).toFixed(0)}%</span>`;
+                    } else if (t.fraud_risk_level === 'medium') {
+                        fraudBadge = `<span class="badge badge-warning">${(score * 100).toFixed(0)}%</span>`;
+                    } else if (t.fraud_risk_level === 'high' || t.fraud_risk_level === 'critical') {
+                        fraudBadge = `<span class="badge badge-danger">${(score * 100).toFixed(0)}%</span>`;
+                    } else {
+                        fraudBadge = `<span class="badge badge-info">-</span>`;
+                    }
+
+                    const cardDisplay = t.card_number ? `****${t.card_number.slice(-4)}` : '-';
+
+                    return `<tr>
+                        <td style="font-family: 'Fira Code', monospace; font-size: 12px;">${t.id.slice(-6)}</td>
+                        <td>${date}</td>
+                        <td>${t.description}</td>
+                        <td>${t.merchant_name || '-'}</td>
+                        <td style="font-family: 'Fira Code', monospace; font-size: 12px;">${cardDisplay}</td>
+                        <td class="amount ${amountClass}">${amountStr}</td>
+                        <td>${fraudBadge}</td>
+                    </tr>`;
+                }).join('');
+            } catch (err) {
+                console.error('Error loading transactions:', err);
+            }
+        }
+
+        async function submitTransaction() {
+            const card = document.getElementById('txnCardNumber').value;
+            const amount = document.getElementById('txnAmount').value;
+            const merchant = document.getElementById('txnMerchant').value;
+            const city = document.getElementById('txnCity').value;
+            const description = document.getElementById('txnDescription').value;
+            const source = document.getElementById('txnSource').value;
+
+            const resultDiv = document.getElementById('txnResult');
+
+            try {
+                const params = new URLSearchParams({
+                    card_number: card,
+                    amount: amount,
+                    merchant_name: merchant,
+                    merchant_city: city,
+                    description: description,
+                    source: source,
+                    transaction_type: '01',
+                    category_code: '5411',
+                });
+
+                const response = await fetch(`${API_BASE}/api/v1/transactions?${params}`, {
+                    method: 'POST',
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail);
+                }
+
+                const result = await response.json();
+                const riskColor = result.fraud_risk_level === 'low' ? 'var(--success)' :
+                                  result.fraud_risk_level === 'medium' ? 'var(--warning)' : 'var(--danger)';
+
+                resultDiv.innerHTML = `
+                    <div style="padding: 16px; background: var(--bg-dark); border-radius: 8px; border: 1px solid var(--success);">
+                        <h4 style="color: var(--success); margin-bottom: 8px;">Transaction Posted Successfully</h4>
+                        <p style="font-size: 14px; color: var(--text-secondary);">
+                            <strong>ID:</strong> ${result.id}<br>
+                            <strong>Amount:</strong> &euro;${parseFloat(result.amount).toFixed(2)}<br>
+                            <strong>Fraud Score:</strong> <span style="color: ${riskColor};">${(result.fraud_score * 100).toFixed(1)}% (${result.fraud_risk_level})</span><br>
+                            ${result.fraud_flags && result.fraud_flags.length > 0 ?
+                                '<strong>Flags:</strong> ' + result.fraud_flags.join(', ') : ''}
+                        </p>
+                        <p style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">
+                            Legacy: This would have been queued for nightly batch via POSTTRAN.JCL -> CBTRN02C.cbl
+                        </p>
+                    </div>`;
+                resultDiv.style.display = 'block';
+
+                // Reload transaction list
+                loadTransactions();
+            } catch (err) {
+                resultDiv.innerHTML = `
+                    <div style="padding: 16px; background: var(--bg-dark); border-radius: 8px; border: 1px solid var(--danger-dark);">
+                        <h4 style="color: var(--danger); margin-bottom: 8px;">Transaction Rejected</h4>
+                        <p style="font-size: 14px; color: var(--text-secondary);">${err.message}</p>
+                    </div>`;
+                resultDiv.style.display = 'block';
+            }
+        }
+
+        loadUserInfo();
+        loadTransactions();
+    </script>
+</body>
+</html>

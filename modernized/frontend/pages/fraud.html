@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardDemo - Fraud Detection</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!--
+    NEW CAPABILITY: Fraud Detection Engine
+
+    This page has NO legacy equivalent. The original CBTRN02C.cbl only had:
+    1. Card number lookup (XREF VSAM)
+    2. Account existence check
+    3. Credit limit validation
+    4. Expiration date check
+
+    And a comment at line 377: "ADD MORE VALIDATIONS HERE"
+
+    This fraud detection engine is what "more validations" looks like
+    on a modernized platform:
+    - Real-time ML-based scoring
+    - Velocity analysis
+    - Merchant risk profiling
+    - Geographic anomaly detection
+    - Pattern recognition
+    -->
+
+    <div class="app-layout">
+        <nav class="sidebar">
+            <div class="sidebar-logo">
+                <h2>CardDemo</h2>
+                <span>Modernized Platform</span>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">Navigation</div>
+                <a href="/dashboard" class="nav-item"><span class="icon">&#9632;</span> Dashboard</a>
+                <a href="/accounts-page" class="nav-item"><span class="icon">&#9733;</span> Accounts</a>
+                <a href="/transactions-page" class="nav-item"><span class="icon">&#8644;</span> Transactions</a>
+                <a href="/fraud-page" class="nav-item active"><span class="icon">&#9888;</span> Fraud Detection <span class="badge">NEW</span></a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">System</div>
+                <a href="/api/docs" class="nav-item" target="_blank"><span class="icon">&#128196;</span> API Docs</a>
+            </div>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-details">
+                        <div class="name" id="userName">Admin User</div>
+                        <div class="role" id="userRole">Administrator</div>
+                    </div>
+                </div>
+                <a href="/" class="nav-item" style="margin-top: 12px; color: var(--danger);" onclick="localStorage.clear()">
+                    <span class="icon">&#10140;</span> Sign Out
+                </a>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1>Fraud Detection Engine</h1>
+                    <div class="legacy-ref">
+                        NEW capability - impossible in legacy batch architecture.
+                        CBTRN02C.cbl line 377: "ADD MORE VALIDATIONS HERE"
+                    </div>
+                </div>
+                <span class="badge badge-new" style="font-size: 14px; padding: 8px 16px;">
+                    Not in Legacy System
+                </span>
+            </div>
+
+            <!-- Scenario Buttons -->
+            <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;">
+                <button class="btn btn-secondary btn-sm" onclick="loadScenario('normal')">Normal Purchase</button>
+                <button class="btn btn-secondary btn-sm" onclick="loadScenario('high_amount')">High Amount</button>
+                <button class="btn btn-secondary btn-sm" onclick="loadScenario('crypto')">Crypto Exchange</button>
+                <button class="btn btn-secondary btn-sm" onclick="loadScenario('foreign')">Foreign Transaction</button>
+                <button class="btn btn-secondary btn-sm" onclick="loadScenario('cash_advance')">Cash Advance</button>
+                <button class="btn btn-secondary btn-sm" onclick="loadScenario('late_night')">Late Night Purchase</button>
+            </div>
+
+            <div class="fraud-panel">
+                <!-- Input Form -->
+                <div class="fraud-form">
+                    <h3 style="margin-bottom: 20px;">Transaction to Analyze</h3>
+
+                    <div class="form-group">
+                        <label>Card Number</label>
+                        <select id="fraudCard" class="form-input">
+                            <option value="4111111111111111">4111 1111 1111 1111 (Jan de Vries)</option>
+                            <option value="5333333333333333">5333 3333 3333 3333 (Emma Bakker)</option>
+                            <option value="5444444444444444">5444 4444 4444 4444 (Pieter Jansen)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Amount (&euro;)</label>
+                        <input type="number" id="fraudAmount" class="form-input" value="125.50" step="0.01" min="0.01">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Merchant Name</label>
+                        <input type="text" id="fraudMerchant" class="form-input" value="Albert Heijn">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Merchant City</label>
+                        <input type="text" id="fraudCity" class="form-input" value="Amsterdam">
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Transaction Type</label>
+                            <select id="fraudType" class="form-input">
+                                <option value="01">01 - Purchase</option>
+                                <option value="02">02 - Payment</option>
+                                <option value="03">03 - Cash Advance</option>
+                                <option value="04">04 - Balance Transfer</option>
+                                <option value="05">05 - Fee</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Source</label>
+                            <select id="fraudSource" class="form-input">
+                                <option value="ONLINE">Online</option>
+                                <option value="POS TERM">POS Terminal</option>
+                                <option value="ATM">ATM</option>
+                                <option value="MOBILE">Mobile</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="runFraudCheck()">
+                        Run Fraud Analysis
+                    </button>
+                </div>
+
+                <!-- Results Panel -->
+                <div class="fraud-result" id="fraudResultPanel">
+                    <h3 style="margin-bottom: 20px;">Analysis Results</h3>
+
+                    <div id="fraudResultContent" style="text-align: center; color: var(--text-muted); padding: 60px 0;">
+                        <p style="font-size: 40px; margin-bottom: 12px;">&#9888;</p>
+                        <p>Submit a transaction to see fraud analysis results</p>
+                        <p style="font-size: 12px; margin-top: 8px;">Try the scenario buttons above for pre-configured examples</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- What Legacy Could Do -->
+            <div class="comparison" style="margin-top: 32px;">
+                <div class="comparison-legacy">
+                    <h3>LEGACY: CBTRN02C.cbl Validation (lines 370-421)</h3>
+<pre>
+ 1500-VALIDATE-TRAN.
+     MOVE 0 TO WS-VALIDATION-FAIL-REASON
+
+ * ADD MORE VALIDATIONS HERE   <-- Line 377
+
+ 1500-A-LOOKUP-XREF.
+     READ XREF-FILE
+       INVALID KEY
+         MOVE 'INVALID CARD NUMBER FOUND'
+         MOVE 100 TO WS-VALIDATION-FAIL-REASON
+
+ 1500-B-LOOKUP-ACCT.
+     READ ACCOUNT-FILE
+       INVALID KEY
+         MOVE 'ACCOUNT RECORD NOT FOUND'
+         MOVE 101 TO WS-VALIDATION-FAIL-REASON
+
+     IF ACCT-CREDIT-LIMIT < WS-TEMP-BAL
+       MOVE 'OVERLIMIT TRANSACTION'
+       MOVE 102 TO WS-VALIDATION-FAIL-REASON
+
+     IF WS-TRAN-ORIG-TS > ACCT-EXPIRY-DATE
+       MOVE 'ACCT EXPIRED'
+       MOVE 103 TO WS-VALIDATION-FAIL-REASON
+
+ * That's ALL the validation. No fraud check.
+</pre>
+                </div>
+                <div class="comparison-modern">
+                    <h3>MODERN: Fraud Detection Engine (8 risk factors)</h3>
+                    <ul style="color: var(--text-secondary); font-size: 14px; list-style: none; padding: 0;">
+                        <li style="padding: 8px 0; border-bottom: 1px solid var(--border);">
+                            <strong style="color: var(--primary);">1. Amount Analysis</strong><br>
+                            High/elevated amount detection with threshold scoring
+                        </li>
+                        <li style="padding: 8px 0; border-bottom: 1px solid var(--border);">
+                            <strong style="color: var(--primary);">2. Velocity Check</strong><br>
+                            Multiple transactions in short time window (impossible in batch)
+                        </li>
+                        <li style="padding: 8px 0; border-bottom: 1px solid var(--border);">
+                            <strong style="color: var(--primary);">3. Merchant Risk</strong><br>
+                            Known high-risk merchant categories (crypto, gambling, offshore)
+                        </li>
+                        <li style="padding: 8px 0; border-bottom: 1px solid var(--border);">
+                            <strong style="color: var(--primary);">4. Geographic Anomaly</strong><br>
+                            Transactions from high-risk geographies
+                        </li>
+                        <li style="padding: 8px 0; border-bottom: 1px solid var(--border);">
+                            <strong style="color: var(--primary);">5. Transaction Type</strong><br>
+                            Cash advance and unusual type detection
+                        </li>
+                        <li style="padding: 8px 0; border-bottom: 1px solid var(--border);">
+                            <strong style="color: var(--primary);">6. Source Channel</strong><br>
+                            High-value online transaction flagging
+                        </li>
+                        <li style="padding: 8px 0; border-bottom: 1px solid var(--border);">
+                            <strong style="color: var(--primary);">7. Time Analysis</strong><br>
+                            Unusual time-of-day transaction detection
+                        </li>
+                        <li style="padding: 8px 0;">
+                            <strong style="color: var(--primary);">8. Round Amount</strong><br>
+                            Suspiciously round amount detection
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        function loadUserInfo() {
+            const user = JSON.parse(localStorage.getItem('carddemo_user') || '{}');
+            if (user.first_name) {
+                document.getElementById('userName').textContent = `${user.first_name} ${user.last_name}`;
+                document.getElementById('userRole').textContent = user.role === 'admin' ? 'Administrator' : 'User';
+                document.getElementById('userAvatar').textContent = user.first_name[0];
+            }
+        }
+
+        function loadScenario(scenario) {
+            const scenarios = {
+                normal: { amount: 45.50, merchant: 'Albert Heijn', city: 'Amsterdam', type: '01', source: 'POS TERM' },
+                high_amount: { amount: 8500, merchant: 'Luxury Watches BV', city: 'Amsterdam', type: '01', source: 'POS TERM' },
+                crypto: { amount: 5000, merchant: 'CRYPTO EXCHANGE', city: 'Online', type: '01', source: 'ONLINE' },
+                foreign: { amount: 3000, merchant: 'Moscow Trading Co', city: 'Moscow, RU', type: '01', source: 'ONLINE' },
+                cash_advance: { amount: 2000, merchant: 'CASH ADVANCE ATM', city: 'Rotterdam', type: '03', source: 'ATM' },
+                late_night: { amount: 750, merchant: 'Online Gaming', city: 'Amsterdam', type: '01', source: 'ONLINE' },
+            };
+
+            const s = scenarios[scenario];
+            if (!s) return;
+
+            document.getElementById('fraudAmount').value = s.amount;
+            document.getElementById('fraudMerchant').value = s.merchant;
+            document.getElementById('fraudCity').value = s.city;
+            document.getElementById('fraudType').value = s.type;
+            document.getElementById('fraudSource').value = s.source;
+        }
+
+        async function runFraudCheck() {
+            const card = document.getElementById('fraudCard').value;
+            const amount = document.getElementById('fraudAmount').value;
+            const merchant = document.getElementById('fraudMerchant').value;
+            const city = document.getElementById('fraudCity').value;
+            const type = document.getElementById('fraudType').value;
+            const source = document.getElementById('fraudSource').value;
+
+            const resultDiv = document.getElementById('fraudResultContent');
+            resultDiv.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading"></div><p style="margin-top: 12px;">Analyzing transaction...</p></div>';
+
+            try {
+                const params = new URLSearchParams({
+                    card_number: card,
+                    amount: amount,
+                    merchant_name: merchant,
+                    merchant_city: city,
+                    transaction_type: type,
+                    source: source,
+                });
+
+                const response = await fetch(`${API_BASE}/api/v1/fraud/check?${params}`, {
+                    method: 'POST',
+                });
+
+                const result = await response.json();
+                const score = result.risk_score;
+                const pct = (score * 100).toFixed(1);
+
+                let riskClass = 'risk-low';
+                let riskBadgeClass = 'badge-success';
+                if (result.risk_level === 'medium') { riskClass = 'risk-medium'; riskBadgeClass = 'badge-warning'; }
+                if (result.risk_level === 'high') { riskClass = 'risk-high'; riskBadgeClass = 'badge-danger'; }
+                if (result.risk_level === 'critical') { riskClass = 'risk-critical'; riskBadgeClass = 'badge-danger'; }
+
+                let flagsHtml = '';
+                if (result.flags && result.flags.length > 0) {
+                    flagsHtml = `
+                        <h4 style="margin-top: 20px; margin-bottom: 8px; font-size: 14px; color: var(--text-secondary);">Risk Flags</h4>
+                        <ul class="risk-flags">
+                            ${result.flags.map(f => `<li>${f}</li>`).join('')}
+                        </ul>`;
+                } else {
+                    flagsHtml = '<p style="color: var(--text-muted); margin-top: 16px; font-size: 13px;">No risk flags triggered</p>';
+                }
+
+                resultDiv.innerHTML = `
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="font-size: 48px; font-weight: 700; color: ${score < 0.25 ? 'var(--success)' : score < 0.5 ? 'var(--warning)' : 'var(--danger)'};">
+                            ${pct}%
+                        </div>
+                        <span class="badge ${riskBadgeClass}" style="font-size: 14px; padding: 6px 16px;">
+                            ${result.risk_level.toUpperCase()} RISK
+                        </span>
+                    </div>
+
+                    <div class="risk-meter">
+                        <div class="risk-meter-fill ${riskClass}" style="width: ${pct}%;"></div>
+                    </div>
+
+                    <div style="background: var(--bg-dark); padding: 12px; border-radius: 8px; margin-top: 16px;">
+                        <p style="font-size: 14px; color: var(--text-secondary);">
+                            <strong>Recommendation:</strong><br>${result.recommendation}
+                        </p>
+                    </div>
+
+                    ${flagsHtml}
+
+                    <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);">
+                        <h4 style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Details</h4>
+                        <div style="font-size: 12px; color: var(--text-muted);">
+                            <p>Model: ${result.details.analysis_model}</p>
+                            <p>Confidence: ${(result.details.model_confidence * 100).toFixed(1)}%</p>
+                            <p>Card: ****${result.details.card_last_four}</p>
+                            <p>Checked: ${new Date(result.checked_at).toLocaleString()}</p>
+                        </div>
+                    </div>
+                `;
+            } catch (err) {
+                resultDiv.innerHTML = `
+                    <div style="text-align: center; color: var(--danger); padding: 40px;">
+                        <p>Error running fraud check: ${err.message}</p>
+                    </div>`;
+            }
+        }
+
+        loadUserInfo();
+    </script>
+</body>
+</html>
