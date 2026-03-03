@@ -119,10 +119,17 @@ Navigate to http://localhost:8000/ after starting the backend.
 
 ## Demo Credentials
 
-| Username | Password | Role | MFA |
-|---|---|---|---|
-| admin001 | SecureP@ss1! | Admin | Enabled |
-| user0001 | SecureP@ss2! | User | Disabled |
+Passwords are configured via environment variables for security:
+
+```bash
+export DEMO_ADMIN_PASSWORD="your-admin-password"
+export DEMO_USER_PASSWORD="your-user-password"
+```
+
+| Username | Password Env Var | Default | Role | MFA |
+|---|---|---|---|---|
+| admin001 | `DEMO_ADMIN_PASSWORD` | `demo-admin-pass` | Admin | Enabled |
+| user0001 | `DEMO_USER_PASSWORD` | `demo-user-pass` | User | Disabled |
 
 ## Demo Flow (Recommended for ING)
 
