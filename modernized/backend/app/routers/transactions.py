@@ -136,7 +136,7 @@ async def bill_payment(
     try:
         result = process_bill_payment(
             account_id=account_id,
-            amount=Decimal(str(amount)) if amount else None,
+            amount=Decimal(str(amount)) if amount is not None else None,
         )
         return result
     except ValueError as e:

@@ -335,7 +335,7 @@ def process_transaction(
 
     # Step 3: Credit limit check (was: lines 403-413 of CBTRN02C.cbl)
     if amount > 0:  # Only check for charges, not payments
-        temp_bal = account["current_cycle_credit"] - account["current_cycle_debit"] + amount
+        temp_bal = account["current_cycle_debit"] - account["current_cycle_credit"] + amount
         if account["credit_limit"] < temp_bal:
             raise ValueError(
                 f"VALIDATION ERROR 102: Transaction would exceed credit limit. "
@@ -402,7 +402,7 @@ def process_transaction(
     if amount >= 0:
         account["current_cycle_credit"] += amount
     else:
-        account["current_cycle_debit"] += abs(amount)
+        account["current_cycle_debit"] += amount  # amount is negative, matching COBOL: ADD DALYTRAN-AMT TO ACCT-CURR-CYC-DEBIT
 
     return transaction
 
@@ -463,7 +463,7 @@ def process_bill_payment(account_id: int, amount: Optional[Decimal] = None) -> d
     if account["current_balance"] <= 0:
         raise ValueError("Nothing to pay - balance is zero or credit")
 
-    payment_amount = amount if amount else account["current_balance"]
+    payment_amount = amount if amount is not None else account["current_balance"]
     if payment_amount > account["current_balance"]:
         payment_amount = account["current_balance"]
 

@@ -93,7 +93,7 @@ def analyze_transaction(
             risk_factors["high_utilization"] = 0.10
 
     # --- Factor 2: Velocity Check (NEW - impossible in batch) ---
-    card_key = card_number[-4:]  # Use last 4 for tracking
+    card_key = card_number  # Use full card number for tracking
     if card_key not in _recent_transactions:
         _recent_transactions[card_key] = []
 
