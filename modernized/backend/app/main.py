@@ -111,7 +111,11 @@ frontend_dir = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend"
 )
 if os.path.isdir(frontend_dir):
-    app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
+    # Mount CSS at /css so index.html can use href="css/styles.css"
+    # and pages/*.html can use href="../css/styles.css" (resolves to /css/styles.css)
+    css_dir = os.path.join(frontend_dir, "css")
+    if os.path.isdir(css_dir):
+        app.mount("/css", StaticFiles(directory=css_dir), name="css")
 
     @app.get("/", include_in_schema=False)
     async def serve_frontend():
