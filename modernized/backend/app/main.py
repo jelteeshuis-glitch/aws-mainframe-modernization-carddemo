@@ -105,7 +105,11 @@ async def health_check():
 
 
 # Serve frontend static files
-frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+# __file__ = .../modernized/backend/app/main.py
+# Go up 3 levels to reach modernized/, then into frontend/
+frontend_dir = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend"
+)
 if os.path.isdir(frontend_dir):
     app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 
