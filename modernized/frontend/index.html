@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardDemo Modernized - Sign In</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!--
+    MODERNIZED: Replaces COSGN00.bms (BMS screen map) + COSGN00C.cbl (COBOL program)
+
+    Legacy BMS screen (COSGN00.bms lines 108-144) displayed:
+    - ASCII art of a dollar bill
+    - USERID field (PIC X(8))
+    - PASSWD field (PIC X(8))
+    - ERRMSG field for errors
+
+    Legacy authentication (COSGN00C.cbl):
+    - READ USRSEC VSAM file by userid
+    - Compare SEC-USR-PWD directly (PLAINTEXT!)
+    - XCTL to COADM01C or COMEN01C based on user type
+
+    Modern replacement:
+    - OAuth2/JWT authentication
+    - Bcrypt password hashing
+    - MFA support
+    - Session tokens with expiry
+    -->
+
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-logo">
+                <h1>CardDemo</h1>
+                <div class="subtitle">Credit Card Management System</div>
+                <div class="legacy-badge">Modernized from COBOL/CICS/VSAM</div>
+            </div>
+
+            <div id="errorMsg" class="error-message"></div>
+            <div id="successMsg" class="success-message"></div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" class="form-input"
+                           placeholder="Enter username (e.g. admin001)" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" class="form-input"
+                           placeholder="Enter password" required>
+                </div>
+
+                <div id="mfaSection" class="mfa-section">
+                    <div class="form-group">
+                        <label for="mfaCode">MFA Code</label>
+                        <input type="text" id="mfaCode" class="form-input"
+                               placeholder="Enter 6-digit MFA code"
+                               maxlength="6" pattern="[0-9]{6}">
+                    </div>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+                        MFA is enabled for this account (NEW - not available in legacy system)
+                    </p>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="loginBtn">
+                    Sign In with OAuth2
+                </button>
+            </form>
+
+            <div class="demo-credentials">
+                <h4>Demo Credentials</h4>
+                <p>Credentials are configured via DEMO_ADMIN_PASSWORD and DEMO_USER_PASSWORD environment variables.</p>
+                <p>Usernames: admin001 (admin) / user0001 (user)</p>
+                <p style="margin-top: 8px; font-size: 11px; color: var(--text-muted); font-family: inherit;">
+                    Legacy used plaintext passwords in VSAM (SEC-USR-PWD PIC X(8))
+                </p>
+            </div>
+
+            <!-- Side-by-side comparison -->
+            <div style="margin-top: 24px;">
+                <details>
+                    <summary style="cursor: pointer; color: var(--text-muted); font-size: 13px;">
+                        View Legacy vs Modern comparison
+                    </summary>
+                    <div style="margin-top: 12px; background: #0a0a0a; padding: 16px; border-radius: 8px; font-family: 'Fira Code', monospace; font-size: 11px; color: #00ff00; overflow-x: auto;">
+<pre>
+ LEGACY: COSGN00.bms (3270 Terminal Screen)
+ ==========================================
+   ____  ____  ____  ____  ____
+  /    \/    \/    \/    \/    \
+ | $  $| $  $| $  $| $  $| $  $|
+  \____/\____/\____/\____/\____/
+
+   AWS Mainframe Modernization
+        CardDemo
+
+     USERID : [________]
+     PASSWD : [________]
+
+     ERRMSG : _________________________
+
+ PF03 - EXIT
+</pre>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        async function handleLogin(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+            const successMsg = document.getElementById('successMsg');
+            const loginBtn = document.getElementById('loginBtn');
+
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'none';
+            loginBtn.innerHTML = '<span class="loading"></span> Authenticating...';
+            loginBtn.disabled = true;
+
+            try {
+                const response = await fetch(
+                    `${API_BASE}/api/v1/auth/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+                    { method: 'POST' }
+                );
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Authentication failed');
+                }
+
+                const data = await response.json();
+
+                // Check if MFA is required (NEW feature)
+                if (data.user && data.user.mfa_enabled) {
+                    const mfaSection = document.getElementById('mfaSection');
+                    if (mfaSection.style.display !== 'block') {
+                        mfaSection.style.display = 'block';
+                        loginBtn.textContent = 'Verify MFA & Sign In';
+                        loginBtn.disabled = false;
+                        successMsg.textContent = 'MFA required - enter any 6 digits for demo';
+                        successMsg.style.display = 'block';
+                        return;
+                    }
+                }
+
+                // Store token and user data
+                localStorage.setItem('carddemo_token', data.access_token);
+                localStorage.setItem('carddemo_user', JSON.stringify(data.user));
+
+                successMsg.textContent = `Welcome, ${data.user.first_name}! Redirecting...`;
+                successMsg.style.display = 'block';
+
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 800);
+            } catch (err) {
+                errorMsg.textContent = err.message;
+                errorMsg.style.display = 'block';
+                loginBtn.textContent = 'Sign In with OAuth2';
+                loginBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardDemo - Accounts</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!--
+    MODERNIZED: Replaces multiple BMS screens and COBOL programs:
+    - COACTVW.bms / COACTVWC.cbl (Account View - CAVW transaction)
+    - COACTUPC.cbl (Account Update - CAUP transaction, 4237 lines!)
+    - COCRDLI.bms / COCRDLIC.cbl (Credit Card List - CCLI transaction)
+    - COCRDSL.bms / COCRDSLC.cbl (Credit Card Detail - CCDL transaction)
+
+    Legacy account view required:
+    - Enter account ID on terminal
+    - View one account at a time
+    - PF7/PF8 to page between cards
+    - Separate screens for view vs update
+
+    Modern account page:
+    - All accounts visible at once
+    - Click to expand details
+    - Customer info alongside account
+    - Bill payment integrated
+    -->
+
+    <div class="app-layout">
+        <nav class="sidebar">
+            <div class="sidebar-logo">
+                <h2>CardDemo</h2>
+                <span>Modernized Platform</span>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">Navigation</div>
+                <a href="/dashboard" class="nav-item"><span class="icon">&#9632;</span> Dashboard</a>
+                <a href="/accounts-page" class="nav-item active"><span class="icon">&#9733;</span> Accounts</a>
+                <a href="/transactions-page" class="nav-item"><span class="icon">&#8644;</span> Transactions</a>
+                <a href="/fraud-page" class="nav-item"><span class="icon">&#9888;</span> Fraud Detection <span class="badge">NEW</span></a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">System</div>
+                <a href="/api/docs" class="nav-item" target="_blank"><span class="icon">&#128196;</span> API Docs</a>
+            </div>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-details">
+                        <div class="name" id="userName">Admin User</div>
+                        <div class="role" id="userRole">Administrator</div>
+                    </div>
+                </div>
+                <a href="/" class="nav-item" style="margin-top: 12px; color: var(--danger);" onclick="localStorage.clear()">
+                    <span class="icon">&#10140;</span> Sign Out
+                </a>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1>Accounts &amp; Customers</h1>
+                    <div class="legacy-ref">Replaces COACTVWC.cbl (View) + COACTUPC.cbl (Update, 4237 lines!) + COCRDLIC.cbl (Cards)</div>
+                </div>
+            </div>
+
+            <!-- Account Cards -->
+            <div id="accountsList">
+                <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    <div class="loading"></div>
+                    <p style="margin-top: 12px;">Loading accounts...</p>
+                </div>
+            </div>
+
+            <!-- Bill Payment Section -->
+            <div class="card" style="margin-top: 32px;">
+                <div class="card-header">
+                    <h3>Bill Payment</h3>
+                    <span class="card-header legacy-tag">was: COBIL00C.cbl + CB00 CICS</span>
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <div class="form-group">
+                            <label>Account ID</label>
+                            <select id="payAccountId" class="form-input">
+                                <option value="">Select account...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Payment Amount (leave empty for full balance)</label>
+                            <input type="number" id="payAmount" class="form-input" placeholder="Full balance" step="0.01" min="0">
+                        </div>
+                        <button class="btn btn-primary" style="width: auto;" onclick="processBillPayment()">
+                            Process Payment
+                        </button>
+                    </div>
+                    <div id="paymentResult" style="display: none;">
+                        <div class="card" style="background: var(--bg-dark); border-color: var(--success);">
+                            <h4 style="color: var(--success); margin-bottom: 12px;">Payment Confirmation</h4>
+                            <div id="paymentDetails"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        function loadUserInfo() {
+            const user = JSON.parse(localStorage.getItem('carddemo_user') || '{}');
+            if (user.first_name) {
+                document.getElementById('userName').textContent = `${user.first_name} ${user.last_name}`;
+                document.getElementById('userRole').textContent = user.role === 'admin' ? 'Administrator' : 'User';
+                document.getElementById('userAvatar').textContent = user.first_name[0];
+            }
+        }
+
+        async function loadAccounts() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/accounts`);
+                const accounts = await response.json();
+
+                const container = document.getElementById('accountsList');
+                const select = document.getElementById('payAccountId');
+
+                container.innerHTML = accounts.map(a => {
+                    const balance = parseFloat(a.current_balance);
+                    const limit = parseFloat(a.credit_limit);
+                    const utilization = limit > 0 ? ((balance / limit) * 100).toFixed(1) : '0.0';
+
+                    return `
+                    <div class="card" style="margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <h3 style="font-size: 18px;">Account #${a.id} - ${a.group_id}</h3>
+                                <p style="color: var(--text-muted); font-size: 13px;">
+                                    Customer: ${a.customer_name} | Opened: ${a.open_date} | Expires: ${a.expiration_date}
+                                </p>
+                            </div>
+                            <span class="badge ${a.status === 'Y' ? 'badge-success' : 'badge-danger'}">
+                                ${a.status === 'Y' ? 'Active' : 'Inactive'}
+                            </span>
+                        </div>
+
+                        <div class="stats-grid" style="margin-top: 16px; margin-bottom: 0;">
+                            <div style="background: var(--bg-dark); padding: 16px; border-radius: 8px;">
+                                <div style="font-size: 12px; color: var(--text-muted);">Current Balance</div>
+                                <div style="font-size: 24px; font-weight: 700; font-family: 'Fira Code', monospace;">&euro;${balance.toFixed(2)}</div>
+                            </div>
+                            <div style="background: var(--bg-dark); padding: 16px; border-radius: 8px;">
+                                <div style="font-size: 12px; color: var(--text-muted);">Credit Limit</div>
+                                <div style="font-size: 24px; font-weight: 700; font-family: 'Fira Code', monospace;">&euro;${limit.toFixed(2)}</div>
+                            </div>
+                            <div style="background: var(--bg-dark); padding: 16px; border-radius: 8px;">
+                                <div style="font-size: 12px; color: var(--text-muted);">Utilization</div>
+                                <div style="font-size: 24px; font-weight: 700; color: ${utilization > 80 ? 'var(--danger)' : utilization > 50 ? 'var(--warning)' : 'var(--success)'};">${utilization}%</div>
+                                <div class="risk-meter" style="margin-top: 8px;">
+                                    <div class="risk-meter-fill ${utilization > 80 ? 'risk-critical' : utilization > 50 ? 'risk-medium' : 'risk-low'}"
+                                         style="width: ${utilization}%;"></div>
+                                </div>
+                            </div>
+                            <div style="background: var(--bg-dark); padding: 16px; border-radius: 8px;">
+                                <div style="font-size: 12px; color: var(--text-muted);">Cash Limit</div>
+                                <div style="font-size: 24px; font-weight: 700; font-family: 'Fira Code', monospace;">&euro;${parseFloat(a.cash_credit_limit).toFixed(2)}</div>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                // Populate bill payment dropdown
+                select.innerHTML = '<option value="">Select account...</option>' +
+                    accounts.map(a => `<option value="${a.id}">Account #${a.id} - ${a.customer_name} (Balance: &euro;${parseFloat(a.current_balance).toFixed(2)})</option>`).join('');
+
+            } catch (err) {
+                console.error('Error loading accounts:', err);
+            }
+        }
+
+        async function processBillPayment() {
+            const accountId = document.getElementById('payAccountId').value;
+            const amount = document.getElementById('payAmount').value;
+
+            if (!accountId) {
+                alert('Please select an account');
+                return;
+            }
+
+            try {
+                let url = `${API_BASE}/api/v1/transactions/bill-pay?account_id=${accountId}`;
+                if (amount) url += `&amount=${amount}`;
+
+                const response = await fetch(url, { method: 'POST' });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail);
+                }
+
+                const result = await response.json();
+
+                document.getElementById('paymentResult').style.display = 'block';
+                document.getElementById('paymentDetails').innerHTML = `
+                    <p style="margin-bottom: 8px;"><strong>Confirmation:</strong> ${result.confirmation_number}</p>
+                    <p style="margin-bottom: 8px;"><strong>Amount Paid:</strong> &euro;${parseFloat(result.amount_paid).toFixed(2)}</p>
+                    <p style="margin-bottom: 8px;"><strong>Previous Balance:</strong> &euro;${parseFloat(result.previous_balance).toFixed(2)}</p>
+                    <p style="margin-bottom: 8px;"><strong>New Balance:</strong> &euro;${parseFloat(result.new_balance).toFixed(2)}</p>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 12px;">
+                        Legacy: COBIL00C.cbl used CICS READ/REWRITE to update ACCTDAT VSAM file
+                    </p>
+                `;
+
+                // Reload accounts to reflect new balance
+                loadAccounts();
+            } catch (err) {
+                alert('Payment failed: ' + err.message);
+            }
+        }
+
+        loadUserInfo();
+        loadAccounts();
+    </script>
+</body>
+</html>

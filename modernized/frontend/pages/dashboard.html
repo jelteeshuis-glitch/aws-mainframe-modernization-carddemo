@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardDemo - Dashboard</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!--
+    MODERNIZED: Replaces COMEN01.bms (Main Menu BMS screen) + COMEN01C.cbl
+
+    Legacy main menu (COMEN01.bms) displayed:
+    - Transaction options (1-9)
+    - PF key navigation (PF3=Exit, PF7/PF8=Scroll)
+    - Single account view at a time
+
+    Modern dashboard shows:
+    - Real-time account summaries
+    - Transaction overview with charts
+    - Fraud alerts (NEW)
+    - Quick actions
+    -->
+
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-logo">
+                <h2>CardDemo</h2>
+                <span>Modernized Platform</span>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Navigation</div>
+                <a href="/dashboard" class="nav-item active">
+                    <span class="icon">&#9632;</span> Dashboard
+                    <span style="margin-left: auto; font-size: 11px; color: var(--text-muted);">was: CM00</span>
+                </a>
+                <a href="/accounts-page" class="nav-item">
+                    <span class="icon">&#9733;</span> Accounts
+                    <span style="margin-left: auto; font-size: 11px; color: var(--text-muted);">was: CAVW</span>
+                </a>
+                <a href="/transactions-page" class="nav-item">
+                    <span class="icon">&#8644;</span> Transactions
+                    <span style="margin-left: auto; font-size: 11px; color: var(--text-muted);">was: CT00</span>
+                </a>
+                <a href="/fraud-page" class="nav-item">
+                    <span class="icon">&#9888;</span> Fraud Detection
+                    <span class="badge">NEW</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">System</div>
+                <a href="/api/docs" class="nav-item" target="_blank">
+                    <span class="icon">&#128196;</span> API Docs
+                </a>
+                <a href="/api/v1/health" class="nav-item" target="_blank">
+                    <span class="icon">&#9829;</span> Health Check
+                </a>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-details">
+                        <div class="name" id="userName">Admin User</div>
+                        <div class="role" id="userRole">Administrator</div>
+                    </div>
+                </div>
+                <a href="/" class="nav-item" style="margin-top: 12px; color: var(--danger);" onclick="localStorage.clear()">
+                    <span class="icon">&#10140;</span> Sign Out
+                </a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1>Dashboard</h1>
+                    <div class="legacy-ref">Replaces COMEN01.bms Main Menu + 12 CICS transaction screens</div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <span class="badge badge-success">API Online</span>
+                    <span class="badge badge-new">Fraud Engine Active</span>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Accounts</div>
+                    <div class="stat-value" id="totalAccounts">-</div>
+                    <div class="stat-change positive">Was: VSAM KSDS sequential browse</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Transactions</div>
+                    <div class="stat-value" id="totalTransactions">-</div>
+                    <div class="stat-change positive">Real-time (was: batch JCL)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Fraud Checks</div>
+                    <div class="stat-value" style="color: var(--primary);">Active</div>
+                    <div class="stat-change" style="color: var(--primary);">NEW - Not in legacy system</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Authentication</div>
+                    <div class="stat-value" style="font-size: 20px;">OAuth2/JWT</div>
+                    <div class="stat-change positive">Was: VSAM plaintext passwords</div>
+                </div>
+            </div>
+
+            <!-- Legacy vs Modern Comparison -->
+            <div class="comparison">
+                <div class="comparison-legacy">
+                    <h3>LEGACY: COMEN01.bms (3270 Main Menu)</h3>
+<pre>
+ AWS Mainframe Modernization
+       CardDemo
+
+ OPTION ===>  _
+
+    01 - Account View
+    02 - Account Update
+    03 - Credit Card List
+    04 - Transaction List
+    05 - Transaction View
+    06 - Transaction Add
+    07 - Bill Payment
+    08 - Exit
+    09 - Admin Menu
+
+ F3=EXIT F10=USUB
+</pre>
+                </div>
+                <div class="comparison-modern">
+                    <h3>MODERN: React Dashboard (This Page)</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        The same functionality across all 9 menu options is now available
+                        through this modern web interface with:
+                    </p>
+                    <ul style="color: var(--text-secondary); font-size: 14px; list-style: none; padding: 0;">
+                        <li style="padding: 6px 0;">&#10003; Real-time data updates (was: static screens)</li>
+                        <li style="padding: 6px 0;">&#10003; Multi-account overview (was: one at a time)</li>
+                        <li style="padding: 6px 0;">&#10003; Responsive design (was: 24x80 terminal)</li>
+                        <li style="padding: 6px 0;">&#10003; REST API backend (was: CICS COMMAREA)</li>
+                        <li style="padding: 6px 0;">&#10003; Fraud detection (was: not available)</li>
+                        <li style="padding: 6px 0;">&#10003; OAuth2 auth (was: plaintext passwords)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Recent Transactions</h3>
+                    <span class="card-header legacy-tag">was: COTRN00C.cbl + CT00 CICS</span>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Description</th>
+                            <th>Merchant</th>
+                            <th>Amount</th>
+                            <th>Fraud Score</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentTransactions">
+                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Accounts Overview -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Account Overview</h3>
+                    <span class="card-header legacy-tag">was: COACTVWC.cbl + CAVW CICS</span>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Account</th>
+                            <th>Customer</th>
+                            <th>Balance</th>
+                            <th>Credit Limit</th>
+                            <th>Utilization</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accountsOverview">
+                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        // Load user info from localStorage
+        function loadUserInfo() {
+            const user = JSON.parse(localStorage.getItem('carddemo_user') || '{}');
+            if (user.first_name) {
+                document.getElementById('userName').textContent = `${user.first_name} ${user.last_name}`;
+                document.getElementById('userRole').textContent = user.role === 'admin' ? 'Administrator' : 'User';
+                document.getElementById('userAvatar').textContent = user.first_name[0];
+            }
+        }
+
+        async function loadDashboard() {
+            try {
+                // Fetch accounts and transactions in parallel
+                const [accountsRes, transactionsRes] = await Promise.all([
+                    fetch(`${API_BASE}/api/v1/accounts`),
+                    fetch(`${API_BASE}/api/v1/transactions?page_size=5`),
+                ]);
+
+                const accounts = await accountsRes.json();
+                const transactions = await transactionsRes.json();
+
+                // Update stats
+                document.getElementById('totalAccounts').textContent = accounts.length;
+                document.getElementById('totalTransactions').textContent = transactions.total_count;
+
+                // Render transactions
+                const tbody = document.getElementById('recentTransactions');
+                tbody.innerHTML = transactions.transactions.map(t => {
+                    const amount = parseFloat(t.amount);
+                    const amountClass = amount < 0 ? 'positive' : 'negative';
+                    const amountStr = amount < 0
+                        ? `+${Math.abs(amount).toFixed(2)}`
+                        : `-${amount.toFixed(2)}`;
+
+                    let fraudBadge = '';
+                    if (t.fraud_risk_level === 'low') {
+                        fraudBadge = `<span class="badge badge-success">${(t.fraud_score * 100).toFixed(0)}% Low</span>`;
+                    } else if (t.fraud_risk_level === 'medium') {
+                        fraudBadge = `<span class="badge badge-warning">${(t.fraud_score * 100).toFixed(0)}% Med</span>`;
+                    } else if (t.fraud_risk_level === 'high') {
+                        fraudBadge = `<span class="badge badge-danger">${(t.fraud_score * 100).toFixed(0)}% High</span>`;
+                    } else {
+                        fraudBadge = `<span class="badge badge-info">N/A</span>`;
+                    }
+
+                    return `<tr>
+                        <td style="font-family: 'Fira Code', monospace; font-size: 12px;">${t.id.slice(-6)}</td>
+                        <td>${t.description}</td>
+                        <td>${t.merchant_name || '-'}</td>
+                        <td class="amount ${amountClass}">&euro;${amountStr}</td>
+                        <td>${fraudBadge}</td>
+                        <td><span class="badge badge-success">Posted</span></td>
+                    </tr>`;
+                }).join('');
+
+                // Render accounts
+                const acctBody = document.getElementById('accountsOverview');
+                acctBody.innerHTML = accounts.map(a => {
+                    const balance = parseFloat(a.current_balance);
+                    const limit = parseFloat(a.credit_limit);
+                    const utilization = limit > 0 ? ((balance / limit) * 100).toFixed(1) : '0.0';
+                    const utilClass = utilization > 80 ? 'badge-danger' : utilization > 50 ? 'badge-warning' : 'badge-success';
+
+                    return `<tr>
+                        <td style="font-family: 'Fira Code', monospace;">#${a.id}</td>
+                        <td>${a.customer_name || '-'}</td>
+                        <td class="amount">&euro;${balance.toFixed(2)}</td>
+                        <td class="amount">&euro;${limit.toFixed(2)}</td>
+                        <td><span class="badge ${utilClass}">${utilization}%</span></td>
+                        <td><span class="badge badge-success">${a.status === 'Y' ? 'Active' : 'Inactive'}</span></td>
+                    </tr>`;
+                }).join('');
+            } catch (err) {
+                console.error('Dashboard load error:', err);
+            }
+        }
+
+        loadUserInfo();
+        loadDashboard();
+    </script>
+</body>
+</html>
