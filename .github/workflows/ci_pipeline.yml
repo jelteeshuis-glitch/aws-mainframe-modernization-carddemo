@@ -1,0 +1,48 @@
+name: CardDemo Transaction Posting Regression Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'app/cbl/CBTRN02C.cbl'
+      - 'app/cbl/CBTRN01C.cbl'
+      - 'app/cpy/**'
+      - 'regression_tests/**'
+      - 'validation_harness/**'
+  pull_request:
+    paths:
+      - 'app/cbl/CBTRN02C.cbl'
+      - 'app/cbl/CBTRN01C.cbl'
+      - 'app/cpy/**'
+      - 'regression_tests/**'
+      - 'validation_harness/**'
+
+jobs:
+  regression-test:
+    name: COBOL Transaction Posting Regression Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install GNU COBOL
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y gnucobol
+
+      - name: Verify COBOL compiler
+        run: cobc --version
+
+      - name: Run regression tests
+        run: |
+          chmod +x validation_harness/run_tests.sh
+          ./validation_harness/run_tests.sh
+
+      - name: Upload test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-failure-outputs
+          path: |
+            test-failure-outputs/
