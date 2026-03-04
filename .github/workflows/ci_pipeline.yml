@@ -12,6 +12,7 @@ on:
   pull_request:
     paths:
       - 'app/cbl/CBTRN02C.cbl'
+      - 'app/cbl/CBTRN01C.cbl'
       - 'app/cpy/**'
       - 'regression_tests/**'
       - 'validation_harness/**'
