@@ -19,7 +19,9 @@ COBOL_SRC="app/cbl/CBTRN02C.cbl"
 COPYBOOK_DIR="app/cpy"
 HELPERS_DIR="validation_harness/helpers"
 WORKDIR="$(mktemp -d)"
-trap 'rm -rf "$WORKDIR"' EXIT
+if [ "${GITHUB_ACTIONS:-}" != "true" ]; then
+  trap 'rm -rf "$WORKDIR"' EXIT
+fi
 
 PASS=0; FAIL=0
 
@@ -196,4 +198,11 @@ done
 
 echo ""
 echo "Results: $PASS passed, $FAIL failed"
+
+# Copy outputs for CI artifact upload on failure
+if [ "${GITHUB_ACTIONS:-}" = "true" ] && [ $FAIL -ne 0 ]; then
+  mkdir -p "$REPO_ROOT/test-failure-outputs"
+  cp -r "$WORKDIR"/* "$REPO_ROOT/test-failure-outputs/" 2>/dev/null || true
+fi
+
 [ $FAIL -eq 0 ] || exit 1

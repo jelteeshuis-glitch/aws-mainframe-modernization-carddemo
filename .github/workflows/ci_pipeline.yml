@@ -44,4 +44,4 @@ jobs:
         with:
           name: test-failure-outputs
           path: |
-            /tmp/tmp.*
+            test-failure-outputs/
