@@ -1,0 +1,71 @@
+openapi: 3.0.3
+info:
+  title: Credit Limit Service
+  version: 1.0.0
+paths:
+  /credit-limit/{accountId}:
+    get:
+      summary: Retrieve credit limit info for an account
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Credit limit details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditLimitResponse'
+        '404':
+          description: Account not found
+
+  /credit-limit/check:
+    post:
+      summary: Validate a transaction amount against credit limit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreditCheckRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditCheckResponse'
+
+components:
+  schemas:
+    CreditLimitResponse:
+      type: object
+      properties:
+        accountId:       { type: integer }
+        creditLimit:     { type: number }   # ACCT-CREDIT-LIMIT S9(10)V99
+        cashCreditLimit: { type: number }   # ACCT-CASH-CREDIT-LIMIT
+        currentBalance:  { type: number }   # ACCT-CURR-BAL
+        cycleCredit:     { type: number }   # ACCT-CURR-CYC-CREDIT
+        cycleDebit:      { type: number }   # ACCT-CURR-CYC-DEBIT
+        expirationDate:  { type: string, format: date }
+        activeStatus:    { type: string, maxLength: 1 }
+
+    CreditCheckRequest:
+      type: object
+      required: [accountId, transactionAmount, transactionDate]
+      properties:
+        accountId:         { type: integer }
+        transactionAmount: { type: number }
+        transactionDate:   { type: string, format: date-time }
+
+    CreditCheckResponse:
+      type: object
+      properties:
+        approved:       { type: boolean }
+        approvedAmount: { type: number }
+        responseCode:   { type: string }   # '00'=approved, '05'=declined
+        reasonCode:     { type: string }   # '4100'=insufficient, '4200'=expired, etc.
+        availableAmount:{ type: number }
