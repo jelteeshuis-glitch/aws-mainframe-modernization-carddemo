@@ -1,0 +1,7 @@
+# Runtime dependencies for the CardDemo modernized batch services.
+# Pinned to versions published well before this project so the supply chain is vetted.
+SQLAlchemy>=2.0.30,<2.1
+psycopg2-binary>=2.9.9,<3.0
+
+# Development / test only:
+#   pip install -e .[dev]

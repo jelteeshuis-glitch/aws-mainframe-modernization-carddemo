@@ -1,0 +1,94 @@
+# Local orchestration of the CardDemo batch pipeline.
+#
+# The mainframe used JCL job-chaining plus the COBSWAIT (WAITSTEP) timer to serialise
+# jobs. Here each stage declares `depends_on: { <prev>: { condition:
+# service_completed_successfully } }`, so a stage starts only after the previous stage
+# exits 0 — a real data dependency, not a timer. This mirrors the Step Functions `Next`
+# chain in orchestration/step_functions.asl.json.
+#
+#   docker compose up --build            # runs the full ordered pipeline
+#   docker compose run --rm tranrept     # (re)run a single stage
+
+x-service: &svc
+  build:
+    context: .
+  environment:
+    PGHOST: db
+    PGPORT: "5432"
+    PGUSER: carddemo
+    PGPASSWORD: carddemo
+    PGDATABASE: carddemo
+    CARDDEMO_DATA_DIR: /data
+    CARDDEMO_OUTPUT_DIR: /output
+    CARDDEMO_PARM_DATE: "2022071800"
+  volumes:
+    - ../../app/data/ASCII:/data:ro
+    - ./output:/output
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: carddemo
+      POSTGRES_PASSWORD: carddemo
+      POSTGRES_DB: carddemo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U carddemo"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  load:
+    <<: *svc
+    build:
+      context: .
+      dockerfile: docker/base.Dockerfile
+    command: ["carddemo-load"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  posttran:
+    <<: *svc
+    build:
+      context: .
+      dockerfile: docker/posttran.Dockerfile
+    depends_on:
+      load:
+        condition: service_completed_successfully
+
+  intcalc:
+    <<: *svc
+    build:
+      context: .
+      dockerfile: docker/intcalc.Dockerfile
+    depends_on:
+      posttran:
+        condition: service_completed_successfully
+
+  combtran:
+    <<: *svc
+    build:
+      context: .
+      dockerfile: docker/combtran.Dockerfile
+    depends_on:
+      intcalc:
+        condition: service_completed_successfully
+
+  creastmt:
+    <<: *svc
+    build:
+      context: .
+      dockerfile: docker/creastmt.Dockerfile
+    depends_on:
+      combtran:
+        condition: service_completed_successfully
+
+  tranrept:
+    <<: *svc
+    build:
+      context: .
+      dockerfile: docker/tranrept.Dockerfile
+    depends_on:
+      creastmt:
+        condition: service_completed_successfully
