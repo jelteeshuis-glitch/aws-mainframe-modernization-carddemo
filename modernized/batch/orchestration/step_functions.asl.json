@@ -1,0 +1,130 @@
+{
+  "Comment": "CardDemo core batch pipeline. Replaces the JCL job-chaining and the COBSWAIT (WAITSTEP) timer with real job dependencies: each state starts only after the previous one succeeds (Next), never on a fixed wait. Each state runs the corresponding service container as an ECS/Fargate task; a failure in any step routes to the PipelineFailed state.",
+  "StartAt": "POSTTRAN",
+  "States": {
+    "POSTTRAN": {
+      "Type": "Task",
+      "Comment": "CBTRN02C — post daily transactions",
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "Cluster": "${EcsClusterArn}",
+        "TaskDefinition": "${PostTranTaskDefinitionArn}",
+        "LaunchType": "FARGATE",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": ["${SubnetId}"],
+            "AssignPublicIp": "DISABLED"
+          }
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 10,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {"ErrorEquals": ["States.ALL"], "Next": "PipelineFailed"}
+      ],
+      "Next": "INTCALC"
+    },
+    "INTCALC": {
+      "Type": "Task",
+      "Comment": "CBACT04C — interest calculation",
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "Cluster": "${EcsClusterArn}",
+        "TaskDefinition": "${IntCalcTaskDefinitionArn}",
+        "LaunchType": "FARGATE",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": ["${SubnetId}"],
+            "AssignPublicIp": "DISABLED"
+          }
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 10,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {"ErrorEquals": ["States.ALL"], "Next": "PipelineFailed"}
+      ],
+      "Next": "COMBTRAN"
+    },
+    "COMBTRAN": {
+      "Type": "Task",
+      "Comment": "SORT + IDCAMS — merge posted + interest transactions",
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "Cluster": "${EcsClusterArn}",
+        "TaskDefinition": "${CombTranTaskDefinitionArn}",
+        "LaunchType": "FARGATE",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": ["${SubnetId}"],
+            "AssignPublicIp": "DISABLED"
+          }
+        }
+      },
+      "Catch": [
+        {"ErrorEquals": ["States.ALL"], "Next": "PipelineFailed"}
+      ],
+      "Next": "CREASTMT"
+    },
+    "CREASTMT": {
+      "Type": "Task",
+      "Comment": "CBSTM03A — statement generation",
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "Cluster": "${EcsClusterArn}",
+        "TaskDefinition": "${CreaStmtTaskDefinitionArn}",
+        "LaunchType": "FARGATE",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": ["${SubnetId}"],
+            "AssignPublicIp": "DISABLED"
+          }
+        }
+      },
+      "Catch": [
+        {"ErrorEquals": ["States.ALL"], "Next": "PipelineFailed"}
+      ],
+      "Next": "TRANREPT"
+    },
+    "TRANREPT": {
+      "Type": "Task",
+      "Comment": "CBTRN03C — transaction detail report",
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "Cluster": "${EcsClusterArn}",
+        "TaskDefinition": "${TranReptTaskDefinitionArn}",
+        "LaunchType": "FARGATE",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": ["${SubnetId}"],
+            "AssignPublicIp": "DISABLED"
+          }
+        }
+      },
+      "Catch": [
+        {"ErrorEquals": ["States.ALL"], "Next": "PipelineFailed"}
+      ],
+      "Next": "PipelineSucceeded"
+    },
+    "PipelineSucceeded": {
+      "Type": "Succeed"
+    },
+    "PipelineFailed": {
+      "Type": "Fail",
+      "Error": "CardDemoBatchFailed",
+      "Cause": "One of the CardDemo batch stages failed; see the failed state for details."
+    }
+  }
+}

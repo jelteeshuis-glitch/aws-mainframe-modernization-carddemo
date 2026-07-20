@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "carddemo-batch"
+version = "1.0.0"
+description = "Cloud-native modernization of the CardDemo core batch pipeline (POSTTRAN/INTCALC/COMBTRAN/CREASTMT/TRANREPT)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+dependencies = [
+    "SQLAlchemy>=2.0.30,<2.1",
+    "psycopg2-binary>=2.9.9,<3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.0,<9.0",
+    "ruff>=0.5.0,<1.0",
+]
+
+[project.scripts]
+carddemo-load = "carddemo_batch.cli:load_main"
+carddemo-posttran = "carddemo_batch.cli:posttran_main"
+carddemo-intcalc = "carddemo_batch.cli:intcalc_main"
+carddemo-combtran = "carddemo_batch.cli:combtran_main"
+carddemo-creastmt = "carddemo_batch.cli:creastmt_main"
+carddemo-tranrept = "carddemo_batch.cli:tranrept_main"
+carddemo-pipeline = "carddemo_batch.cli:pipeline_main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
